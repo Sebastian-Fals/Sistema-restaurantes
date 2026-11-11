@@ -68,7 +68,8 @@ class PurchaseState:
     customer_id: int
     amount_cop: int
     reversed: bool
-    reward: RewardState | None  # recompensa que esta compra completó
+    reward: RewardState | None  # recompensa a la que contribuyó este sello
+    traceable: bool = True
 
 
 @dataclass(frozen=True)
@@ -88,25 +89,19 @@ def add_stamp(stamps: int, rules: Rules) -> tuple[int, bool]:
 
 
 def reverse_stamp(
-    stamps: int, rules: Rules, earned: RewardState | None, last_reward: RewardState | None
+    stamps: int, rules: Rules, earned: RewardState | None, contribution_count: int
 ) -> tuple[int, RewardState | None]:
-    """Devuelve (sellos nuevos, recompensa a anular). Escala a soporte si ya se consumió.
-
-    shortcut: el reverso descuenta de la tarjeta actual, no del "lote" exacto de la compra;
-    mantiene el total correcto. Si se necesita trazabilidad por lote, modelar sellos como filas.
-    """
-    if earned is not None:
-        reward = earned
-    elif stamps > 0:
+    """Revierte el sello exacto; nunca toma prestado un sello de otro ciclo."""
+    if earned is None:
+        if stamps < 1:
+            raise NeedsSupport("El historial de sellos requiere revisión de soporte.")
         return stamps - 1, None
-    else:
-        reward = last_reward  # el sello de esta compra ya se había convertido en recompensa
-    if reward is None or reward.status == "redeemed":
+    if earned.status != "available":
         raise NeedsSupport("La recompensa derivada ya fue usada: escalar a soporte.")
-    new_stamps = stamps + rules.stamps_required - 1
+    new_stamps = stamps + contribution_count - 1
     if new_stamps >= rules.stamps_required:
         raise NeedsSupport("El reverso reabre la tarjeta más allá de una recompensa: escalar a soporte.")
-    return new_stamps, reward
+    return new_stamps, earned
 
 
 def parse_customer_query(q: str) -> tuple[str | None, str | None]:

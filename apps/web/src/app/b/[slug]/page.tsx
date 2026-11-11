@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { serverApi } from "@/api/server";
 import { cop } from "@/api/format";
+import { SupportContact } from "@/components/support-contact";
 import { ActivateButton } from "./activate-button";
 import { Header } from "./header";
 import s from "./page.module.css";
@@ -53,7 +54,7 @@ export default async function BusinessPage({ params }: Props) {
             </div>
 
             <div className={s.section}>
-              <h3 className={s.h2}>Así acumulas</h3>
+              <h3 className={s.h3}>Así acumulas</h3>
               <p className={s.rules}>
                 Una compra pagada de {cop(p.min_purchase_cop)} o más suma un sello. Al completar {p.stamps_required}, recibes{" "}
                 <strong>{p.reward_name}</strong>.
@@ -100,7 +101,7 @@ export default async function BusinessPage({ params }: Props) {
           <p className={s.foot}>Precios en COP, informativos. Consulta ingredientes al personal.</p>
         </section>
       </div>
-      <footer className={s.support}>¿Necesitas ayuda? soporte@mesa.app</footer>
+      <footer className={s.support}><SupportContact /></footer>
     </div>
   );
 }

@@ -19,6 +19,9 @@ class FakeRepo:
     def atomic(self):
         return nullcontext()
 
+    def lock_business(self, business_id):
+        pass
+
     def program(self, business_id):
         return self._program
 

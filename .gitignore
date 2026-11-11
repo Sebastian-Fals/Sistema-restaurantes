@@ -5,7 +5,12 @@ db.sqlite3
 staticfiles/
 node_modules/
 .next/
+.next-e2e/
+playwright-report/
+test-results/
+.taste-skill/
 .env
+.env.local
 .pytest_cache/
 *.sqlite3
 tsconfig.tsbuildinfo

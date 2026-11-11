@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { api, errorMessage, type Schemas } from "@/api/client";
+import { api, errorMessage, offline, type Schemas } from "@/api/client";
 import { cop } from "@/api/format";
 import { errorCode, usePanel } from "../context";
 import s from "../panel.module.css";
@@ -33,31 +33,41 @@ export default function Purchases() {
   const [amount, setAmount] = useState("");
   const [paid, setPaid] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
   const [reward, setReward] = useState<Schemas["Reward"] | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const result = useRef<HTMLDivElement>(null);
+  const lookupVersion = useRef(0);
 
   function show(m: Msg) {
     setMsg(m);
     requestAnimationFrame(() => result.current?.focus());
   }
 
-  async function lookup(query = q) {
-    const { data, error } = await api.GET("/api/v1/b/{slug}/customer", { params: { path: { slug }, query: { q: query } } });
-    setCustomer(data ?? null);
+  async function lookup(query = q, preserve = false) {
+    const version = ++lookupVersion.current;
+    const { data, error } = await api.GET("/api/v1/b/{slug}/customer", { params: { path: { slug }, query: { q: query } } }).catch(offline);
+    if (version === lookupVersion.current && (data || !preserve)) setCustomer(data ?? null);
     return error;
   }
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
+    if (searching || busy) return;
+    setSearching(true);
     setMsg(null);
-    const error = await lookup();
-    if (error) show(fail(error));
+    try {
+        const error = await lookup();
+        if (error) show(fail(error));
+    } finally {
+      setSearching(false);
+    }
   }
 
   function reset() {
+    lookupVersion.current += 1;
     setCustomer(null);
     setReference("");
     setAmount("");
@@ -66,32 +76,38 @@ export default function Purchases() {
 
   async function register(e: React.FormEvent) {
     e.preventDefault();
-    if (!customer) return;
+    if (!customer || busy) return;
     setBusy(true);
-    const { data, error, response } = await api.POST("/api/v1/b/{slug}/purchases", {
-      params: { path: { slug } },
-      body: { customer_email: customer.email, amount_cop: Number(amount), reference: reference.trim() },
-    });
-    setBusy(false);
-    if (error || !data) return show(fail(error));
-    const p = data.purchase;
-    const head = `Comprobante ${p.reference} · ${cop(p.amount_cop)} · ${p.customer_email}.`;
-    // Al completar la tarjeta el contador vuelve a 0 y nace una recompensa.
-    const credited = p.reward_id != null
-      ? "Se acreditó 1 sello y completó la tarjeta: ganó una recompensa disponible para canjear."
-      : `Se acreditó 1 sello. Ahora tiene ${data.stamps} de ${data.stamps_required}.`;
-    show(
-      response.status === 201
-        ? { title: "Compra registrada", text: `${head} ${credited}` }
-        : { title: "Compra ya registrada", text: `${head} Esta referencia ya estaba registrada: no se sumó otro sello. Tiene ${data.stamps} de ${data.stamps_required}.` },
-    );
-    setReference("");
-    setAmount("");
-    setPaid(false);
-    await lookup(customer.email);
+    try {
+      const { data, error, response } = await api.POST("/api/v1/b/{slug}/purchases", {
+        params: { path: { slug } },
+        body: { customer_email: customer.email, amount_cop: Number(amount), reference: reference.trim() },
+      }).catch(offline);
+      if (response.status === 0) return show({ title: "No pudimos confirmar la compra", text: "Revisa tu conexión y vuelve a enviar el mismo comprobante, cliente y monto. Si la compra ya se guardó, no sumará otro sello.", error: true });
+      if (error || !data) return show(fail(error));
+      const p = data.purchase;
+      const head = `Comprobante ${p.reference} · ${cop(p.amount_cop)} · ${p.customer_email}.`;
+      // Al completar la tarjeta el contador vuelve a 0 y nace una recompensa.
+      const credited = p.reward_id != null
+        ? "Se acreditó 1 sello y completó la tarjeta: ganó una recompensa disponible para canjear."
+        : `Se acreditó 1 sello. Ahora tiene ${data.stamps} de ${data.stamps_required}.`;
+      show(
+        response.status === 201
+          ? { title: "Compra registrada", text: `${head} ${credited}` }
+          : { title: "Compra ya registrada", text: `${head} Esta referencia ya estaba registrada: no se sumó otro sello. Tiene ${data.stamps} de ${data.stamps_required}.` },
+      );
+      setReference("");
+      setAmount("");
+      setPaid(false);
+      const refreshError = await lookup(customer.email, true);
+      if (refreshError) setMsg((m) => m && ({ ...m, text: `${m.text} No se pudo actualizar el saldo; vuelve a buscar al cliente.` }));
+    } finally {
+      setBusy(false);
+    }
   }
 
   function ask(r: Schemas["Reward"], button: HTMLButtonElement) {
+    if (busy) return;
     trigger.current = button;
     setReward(r);
     dialog.current?.showModal();
@@ -102,13 +118,19 @@ export default function Purchases() {
   }
 
   async function redeem() {
-    if (!reward || !customer) return;
+    if (!reward || !customer || busy) return;
     setBusy(true);
-    const { error } = await api.POST("/api/v1/b/{slug}/rewards/{reward_id}/redeem", { params: { path: { slug, reward_id: reward.id } } });
-    setBusy(false);
-    closeDialog();
-    show(error ? fail(error) : { title: "Canje confirmado", text: `${program?.reward_name ?? "Recompensa"} entregada a ${customer.email}. No puede volver a usarse.` });
-    await lookup(customer.email);
+    try {
+      const { error, response } = await api.POST("/api/v1/b/{slug}/rewards/{reward_id}/redeem", { params: { path: { slug, reward_id: reward.id } } }).catch(offline);
+      closeDialog();
+      show(response.status === 0
+        ? { title: "No pudimos confirmar el canje", text: "Revisa la conexión y busca de nuevo al cliente para comprobar si la recompensa sigue disponible antes de reintentar.", error: true }
+        : error ? fail(error) : { title: "Canje confirmado", text: `${program?.reward_name ?? "Recompensa"} entregada a ${customer.email}. No puede volver a usarse.` });
+      const refreshError = await lookup(customer.email, true);
+      if (refreshError) setMsg((m) => m && ({ ...m, text: `${m.text} No se pudo actualizar la tarjeta; vuelve a buscar al cliente.` }));
+    } finally {
+      setBusy(false);
+    }
   }
 
   const next = customer ? customer.stamps + 1 : 0;
@@ -131,11 +153,12 @@ export default function Purchases() {
             required
             placeholder="CAF · 482 916 o correo"
             autoComplete="off"
+            disabled={busy || searching}
             value={q}
             onChange={(e) => { setQ(e.target.value); reset(); }}
           />
         </div>
-        <button className={s.primaryBtn}>Buscar cliente</button>
+        <button className={s.primaryBtn} disabled={busy || searching}>{searching ? "Buscando…" : "Buscar cliente"}</button>
       </form>
 
       <div ref={result} tabIndex={-1} className={s.live}>
@@ -160,7 +183,7 @@ export default function Purchases() {
               <div className={s.pair}>
                 <div>
                   <label htmlFor="ref">Comprobante de compra</label>
-                  <input id="ref" required maxLength={64} value={reference} onChange={(e) => setReference(e.target.value)} />
+                  <input id="ref" required maxLength={64} disabled={busy} value={reference} onChange={(e) => setReference(e.target.value)} />
                 </div>
                 <div>
                   <label htmlFor="amount">Total pagado (COP)</label>
@@ -171,18 +194,19 @@ export default function Purchases() {
                     min={1}
                     step={1}
                     required
+                    disabled={busy}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                   />
                 </div>
               </div>
               <label className={s.check}>
-                <input type="checkbox" required checked={paid} onChange={(e) => setPaid(e.target.checked)} />
+                <input type="checkbox" required disabled={busy} checked={paid} onChange={(e) => setPaid(e.target.checked)} />
                 Confirmo que la compra fue pagada y no está anulada.
               </label>
               <div className={s.actions}>
                 <button className={s.primaryBtn} disabled={busy}>Validar y sumar 1 sello</button>
-                <button type="button" className={s.secondary} onClick={() => { setQ(""); reset(); setMsg(null); }}>
+                <button type="button" className={s.secondary} disabled={busy} onClick={() => { setQ(""); reset(); setMsg(null); }}>
                   Cancelar registro
                 </button>
               </div>
@@ -220,7 +244,7 @@ export default function Purchases() {
                       <p className={s.rewardName}>{program?.reward_name ?? "Recompensa"}</p>
                       <p className={s.hint}>Vence el {longDate(r.expires_at)} · Emisión #{r.id}</p>
                     </div>
-                    <button type="button" className={s.primaryBtn} onClick={(e) => ask(r, e.currentTarget)}>
+                    <button type="button" className={s.primaryBtn} disabled={busy} onClick={(e) => ask(r, e.currentTarget)}>
                       Canjear
                     </button>
                   </li>

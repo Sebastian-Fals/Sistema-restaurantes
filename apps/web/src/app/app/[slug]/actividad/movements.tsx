@@ -8,7 +8,7 @@ import s from "../panel.module.css";
 const LABEL = { purchase: "+1 sello", reversal: "Sello revertido", redemption: "Canje confirmado" } as const;
 
 /** Tabla de movimientos; en pantallas angostas cada fila se muestra como bloque con etiquetas. */
-export function Movements({ events, onDetail }: { events: Schemas["Activity"][]; onDetail?: (purchaseId: number) => void }) {
+export function Movements({ events, onDetail, disabled = false }: { events: Schemas["Activity"][]; onDetail?: (purchaseId: number) => void; disabled?: boolean }) {
   if (events.length === 0) return <p className={s.hint}>Sin movimientos en el periodo.</p>;
   return (
     <table className={s.table}>
@@ -36,7 +36,7 @@ export function Movements({ events, onDetail }: { events: Schemas["Activity"][];
             <td data-label="Responsable">{ev.actor_email}</td>
             {onDetail && (
               <td>
-                <button type="button" className={s.link} onClick={() => onDetail(ev.purchase_id)}>
+                <button type="button" className={s.link} disabled={disabled} onClick={() => onDetail(ev.purchase_id)}>
                   Ver detalle<span className={s.srOnly}> de la compra #{ev.purchase_id}</span>
                 </button>
               </td>

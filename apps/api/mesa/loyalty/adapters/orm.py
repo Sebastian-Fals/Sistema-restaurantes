@@ -2,7 +2,7 @@ from django.db import IntegrityError, transaction
 
 from mesa.identity.models import User
 from mesa.loyalty import domain as d
-from mesa.loyalty.models import Card, Consent, Program, Purchase, PurchaseReversal, Reward
+from mesa.loyalty.models import Business, Card, Consent, Program, Purchase, PurchaseReversal, Reward, StampContribution
 
 
 def _reward(r: Reward | None) -> d.RewardState | None:
@@ -10,13 +10,21 @@ def _reward(r: Reward | None) -> d.RewardState | None:
 
 
 def _purchase(p: Purchase) -> d.PurchaseState:
-    reward = Reward.objects.filter(purchase=p).first()
-    return d.PurchaseState(p.id, p.customer_id, p.amount_cop, PurchaseReversal.objects.filter(purchase=p).exists(), _reward(reward))
+    contribution = StampContribution.objects.select_related("reward").filter(purchase=p).first()
+    return d.PurchaseState(
+        p.id, p.customer_id, p.amount_cop, PurchaseReversal.objects.filter(purchase=p).exists(),
+        _reward(contribution.reward) if contribution else None, contribution is not None,
+    )
 
 
 class DjangoLoyaltyRepository:
     def atomic(self):
         return transaction.atomic()
+
+    def lock_business(self, business_id):
+        # A controlled pilot has low write volume. One lock order for all commands
+        # also serializes references shared by DIFFERENT customers, without deadlocks.
+        Business.objects.select_for_update().get(pk=business_id)
 
     def program(self, business_id):
         p = Program.objects.filter(business_id=business_id).first()
@@ -65,22 +73,30 @@ class DjangoLoyaltyRepository:
             business_id=business_id, customer_id=customer_id, amount_cop=amount_cop,
             reference=reference, registered_by_id=staff_id,
         )
+        StampContribution.objects.create(purchase=p)
         return _purchase(p)
 
     def add_reward(self, business_id, customer_id, purchase_id, expires_at):
-        return _reward(
-            Reward.objects.create(
-                business_id=business_id, customer_id=customer_id, purchase_id=purchase_id, expires_at=expires_at
-            )
+        reward = Reward.objects.create(
+            business_id=business_id, customer_id=customer_id, purchase_id=purchase_id, expires_at=expires_at
+        )
+        self._pending_stamps(business_id, customer_id).update(reward=reward)
+        return _reward(reward)
+
+    def _pending_stamps(self, business_id, customer_id):
+        return StampContribution.objects.filter(
+            purchase__business_id=business_id, purchase__customer_id=customer_id,
+            purchase__reversal__isnull=True, reward__isnull=True,
         )
 
-    def latest_reward(self, business_id, customer_id):
-        r = (
-            Reward.objects.filter(business_id=business_id, customer_id=customer_id)
-            .exclude(status=Reward.VOIDED)
-            .first()  # orden por defecto: más reciente primero
-        )
-        return _reward(r)
+    def pending_stamp_count(self, business_id, customer_id):
+        return self._pending_stamps(business_id, customer_id).count()
+
+    def contribution_count(self, reward_id):
+        return StampContribution.objects.filter(reward_id=reward_id, purchase__reversal__isnull=True).count()
+
+    def release_reward_stamps(self, reward_id):
+        StampContribution.objects.filter(reward_id=reward_id).update(reward=None)
 
     def reward_for_update(self, business_id, reward_id):
         return _reward(Reward.objects.select_for_update().filter(business_id=business_id, pk=reward_id).first())
@@ -100,6 +116,9 @@ class DjangoLoyaltyRepository:
         )
 
     def anonymize_customer(self, customer_id):
+        from mesa.identity.services import remove_account_access
+
+        remove_account_access(customer_id)
         u = User.objects.get(pk=customer_id)
         u.email, u.is_active = f"eliminado-{u.pk}@invalid.local", False
         u.set_unusable_password()

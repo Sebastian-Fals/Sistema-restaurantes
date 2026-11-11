@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 log = logging.getLogger(__name__)
 
@@ -31,4 +32,10 @@ class ResendMailer:
 
 
 def make_mailer():
-    return ResendMailer() if settings.MAIL_ADAPTER == "resend" else ConsoleMailer()
+    if settings.MAIL_ADAPTER == "console":
+        return ConsoleMailer()
+    if settings.MAIL_ADAPTER == "resend":
+        if not settings.RESEND_API_KEY.strip():
+            raise ImproperlyConfigured("MAIL_ADAPTER=resend necesita RESEND_API_KEY.")
+        return ResendMailer()
+    raise ImproperlyConfigured("MAIL_ADAPTER debe ser console o resend.")

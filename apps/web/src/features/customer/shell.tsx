@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, type Schemas } from "@/api/client";
+import { api, offline, type Schemas } from "@/api/client";
+import { SupportContact } from "@/components/support-contact";
 import s from "./customer.module.css";
 
 export { s as styles };
+export { offline } from "@/api/client";
 
 const icon = { width: 24, height: 24, fill: "none", stroke: "currentColor", strokeWidth: 1.6, "aria-hidden": true } as const;
 const CardIcon = () => (
@@ -35,7 +37,7 @@ export function CustomerShell({ title, subtitle, children, nav = true }: { title
           <Link href="/cuenta" aria-current={current("/cuenta")}><UserIcon />Mi cuenta</Link>
         </nav>
       )}
-      <footer className={s.foot}>Soporte: soporte@mesa.app</footer>
+      <footer className={s.foot}><SupportContact /></footer>
     </div>
   );
 }
@@ -46,21 +48,29 @@ export function useCards() {
   const path = usePathname();
   const [cards, setCards] = useState<Schemas["Card"][] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    api.GET("/api/v1/me/cards").then(({ data, response }) => {
+    let active = true;
+    setFailed(false);
+    setCards(null);
+    api.GET("/api/v1/me/cards").catch(offline).then(({ data, response }) => {
+      if (!active) return;
       if (response.status === 401 || response.status === 403) return router.replace(`/acceso?next=${encodeURIComponent(path)}`);
       if (!data) return setFailed(true);
       setCards(data);
-    }, () => setFailed(true));
-  }, [router, path]);
-  return { cards, setCards, failed };
+    });
+    return () => { active = false; };
+  }, [router, path, attempt]);
+  return { cards, setCards, failed, retry: () => setAttempt((n) => n + 1) };
 }
 
-/** Respuesta sustituta cuando fetch falla por red (openapi-fetch lanza en ese caso). */
-export const offline = () => ({ data: undefined, error: { detail: "Sin conexión. Revisa tu red e intenta de nuevo." }, response: { status: 0 } as Response });
-
 export const Loading = () => <p role="status" className="muted">Cargando…</p>;
-export const LoadError = () => <p role="alert" className="status error">No pudimos cargar tus tarjetas. Revisa tu conexión y recarga la página.</p>;
+export const LoadError = ({ retry }: { retry?: () => void }) => (
+  <div role="alert" className="status error">
+    <p>No pudimos cargar tus tarjetas. Revisa tu conexión e intenta de nuevo.</p>
+    {retry && <button type="button" className="secondary" onClick={retry}>Reintentar</button>}
+  </div>
+);
 
 /** Tarjeta verde con la cuadrícula de sellos. El estado se comunica con check/número y texto, no solo color. */
 export function StampCard({ card, href }: { card: Schemas["Card"]; href?: string }) {

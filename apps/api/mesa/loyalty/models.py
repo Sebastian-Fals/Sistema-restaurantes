@@ -126,3 +126,10 @@ class Consent(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["business", "customer", "channel"], name="uniq_consent")]
+
+
+class StampContribution(models.Model):
+    """El sello de una compra y la recompensa exacta que financió, si ya se completó."""
+
+    purchase = models.OneToOneField(Purchase, on_delete=models.PROTECT, related_name="stamp_contribution")
+    reward = models.ForeignKey(Reward, null=True, blank=True, on_delete=models.PROTECT, related_name="contributions")
