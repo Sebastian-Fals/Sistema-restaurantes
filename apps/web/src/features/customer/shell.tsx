@@ -21,7 +21,7 @@ export function CustomerShell({ title, subtitle, children, nav = true }: { title
   const path = usePathname();
   const current = (href: string) => (path.startsWith(href) ? "page" : undefined);
   return (
-    <div className={nav ? s.shell : undefined}>
+    <div className={s.shell}>
       <header className={s.top}>
         <Link href="/" className={s.brand}>mesa</Link>
         {nav && <Link href="/cuenta" className={s.iconLink} aria-label="Mi cuenta"><UserIcon /></Link>}
