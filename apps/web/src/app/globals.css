@@ -27,3 +27,4 @@ th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--bord
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
 .kpi { background: var(--sage); border-radius: 8px; padding: 12px; } .kpi b { display: block; font-size: 24px; }
 @media (prefers-reduced-motion: no-preference) { .stamp { transition: background .18s; } }
+main:has(> .wide) { max-width: none; padding: 0; } /* pantallas de escritorio (panel del negocio) */
