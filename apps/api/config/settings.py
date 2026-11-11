@@ -16,7 +16,10 @@ if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY es obligatorio cuando DEBUG=false")
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+_raw_csrf = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+if not _raw_csrf and DEBUG:
+    _raw_csrf = "http://localhost:3000,http://127.0.0.1:3000"
+CSRF_TRUSTED_ORIGINS = [o for o in _raw_csrf.split(",") if o]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -60,7 +63,14 @@ TEMPLATES = [
 ]
 
 # Producción: DATABASE_URL apunta al PostgreSQL externo. SQLite solo para desarrollo/tests.
-DATABASES = {"default": dj_database_url.config(default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
+# La base de datos es SIEMPRE externa (PostgreSQL). No hay SQLite local.
+_database_url = os.environ.get("DATABASE_URL")
+if not _database_url:
+    raise RuntimeError(
+        "DATABASE_URL es obligatorio (PostgreSQL externo). "
+        "Configuralo en apps/api/.env o en el entorno. No se usa SQLite local."
+    )
+DATABASES = {"default": dj_database_url.config(default=_database_url)}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "identity.User"
 
