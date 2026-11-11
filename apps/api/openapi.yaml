@@ -1,0 +1,952 @@
+openapi: 3.0.3
+info:
+  title: Mesa API
+  version: 0.1.0
+  description: Programa de sellos para cafeterías (piloto).
+paths:
+  /api/v1/auth/code:
+    post:
+      operationId: auth_code_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/csrf:
+    get:
+      operationId: auth_csrf_retrieve
+      description: Entrega la cookie CSRF; el frontend la reenvía en X-CSRFToken.
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/logout:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/verify:
+    post:
+      operationId: auth_verify_create
+      description: 'Registro e inicio de sesión son el mismo flujo: crea la cuenta
+        si no existe.'
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/b/{slug}/activity:
+    get:
+      operationId: b_activity_list
+      description: 'Mixin: resuelve el negocio de la URL. Todas las consultas deben
+        filtrar por él.'
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: type
+        schema:
+          enum:
+          - purchase
+          - reversal
+          - redemption
+          type: string
+          minLength: 1
+        description: |-
+          * `purchase` - purchase
+          * `reversal` - reversal
+          * `redemption` - redemption
+      tags:
+      - b
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
+          description: ''
+  /api/v1/b/{slug}/card:
+    post:
+      operationId: b_card_create
+      description: El cliente activa su tarjeta (vacía) en un negocio con programa
+        activo.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - b
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+  /api/v1/b/{slug}/consent:
+    put:
+      operationId: b_consent_update
+      description: 'Mixin: resuelve el negocio de la URL. Todas las consultas deben
+        filtrar por él.'
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - b
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConsentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConsentRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consent'
+          description: ''
+  /api/v1/b/{slug}/customer:
+    get:
+      operationId: b_customer_retrieve
+      description: 'Mixin: resuelve el negocio de la URL. Todas las consultas deben
+        filtrar por él.'
+      parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Código del cliente (ej. OLI · 482 916) o correo
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - b
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerLookup'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+  /api/v1/b/{slug}/purchases:
+    post:
+      operationId: b_purchases_create
+      description: Registra una compra ya pagada en caja. La `reference` es la clave
+        de idempotencia.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - b
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseInRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PurchaseInRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PurchaseInRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseResult'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseResult'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+  /api/v1/b/{slug}/purchases/{purchase_id}:
+    get:
+      operationId: b_purchases_retrieve
+      description: 'Mixin: resuelve el negocio de la URL. Todas las consultas deben
+        filtrar por él.'
+      parameters:
+      - in: path
+        name: purchase_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - b
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+  /api/v1/b/{slug}/purchases/{purchase_id}/reverse:
+    post:
+      operationId: b_purchases_reverse_create
+      description: 'Mixin: resuelve el negocio de la URL. Todas las consultas deben
+        filtrar por él.'
+      parameters:
+      - in: path
+        name: purchase_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - b
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReverseRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReverseRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReverseRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+  /api/v1/b/{slug}/rewards/{reward_id}/redeem:
+    post:
+      operationId: b_rewards_redeem_create
+      description: 'Mixin: resuelve el negocio de la URL. Todas las consultas deben
+        filtrar por él.'
+      parameters:
+      - in: path
+        name: reward_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - b
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+  /api/v1/b/{slug}/summary:
+    get:
+      operationId: b_summary_retrieve
+      description: 'Mixin: resuelve el negocio de la URL. Todas las consultas deben
+        filtrar por él.'
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: type
+        schema:
+          enum:
+          - purchase
+          - reversal
+          - redemption
+          type: string
+          minLength: 1
+        description: |-
+          * `purchase` - purchase
+          * `reversal` - reversal
+          * `redemption` - redemption
+      tags:
+      - b
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Summary'
+          description: ''
+  /api/v1/me:
+    get:
+      operationId: me_retrieve
+      tags:
+      - me
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+    delete:
+      operationId: me_destroy
+      description: 'Elimina la cuenta: anonimiza el correo; las compras se conservan
+        sin dato personal.'
+      tags:
+      - me
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/me/cards:
+    get:
+      operationId: me_cards_list
+      tags:
+      - me
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+          description: ''
+  /api/v1/public/b/{slug}:
+    get:
+      operationId: public_b_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - public
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicBusiness'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+components:
+  schemas:
+    Activity:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        at:
+          type: string
+          format: date-time
+        actor_email:
+          type: string
+          format: email
+        customer_email:
+          type: string
+          format: email
+        amount_cop:
+          type: integer
+          nullable: true
+        detail:
+          type: string
+        purchase_id:
+          type: integer
+      required:
+      - actor_email
+      - amount_cop
+      - at
+      - customer_email
+      - detail
+      - purchase_id
+      - type
+    Card:
+      type: object
+      properties:
+        customer_code:
+          type: string
+        business_slug:
+          type: string
+        business_name:
+          type: string
+        reward_name:
+          type: string
+        stamps:
+          type: integer
+        stamps_required:
+          type: integer
+        marketing_consent:
+          type: boolean
+        rewards:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reward'
+        recent_purchases:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentPurchase'
+      required:
+      - business_name
+      - business_slug
+      - customer_code
+      - marketing_consent
+      - recent_purchases
+      - reward_name
+      - rewards
+      - stamps
+      - stamps_required
+    Consent:
+      type: object
+      properties:
+        granted:
+          type: boolean
+      required:
+      - granted
+    ConsentRequest:
+      type: object
+      properties:
+        granted:
+          type: boolean
+      required:
+      - granted
+    CustomerLookup:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        customer_code:
+          type: string
+          nullable: true
+        stamps:
+          type: integer
+        stamps_required:
+          type: integer
+        rewards:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reward'
+      required:
+      - customer_code
+      - email
+      - rewards
+      - stamps
+      - stamps_required
+    DailyStamps:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        stamps:
+          type: integer
+      required:
+      - date
+      - stamps
+    EmailRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - email
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        detail:
+          type: string
+      required:
+      - code
+      - detail
+    Me:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/Membership'
+      required:
+      - email
+      - id
+      - memberships
+    Membership:
+      type: object
+      properties:
+        business_slug:
+          type: string
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+      required:
+      - business_slug
+      - role
+    MenuItem:
+      type: object
+      properties:
+        category:
+          type: string
+          maxLength: 60
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 300
+        price_cop:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        available:
+          type: boolean
+      required:
+      - category
+      - name
+      - price_cop
+    Program:
+      type: object
+      properties:
+        reward_name:
+          type: string
+          maxLength: 120
+        min_purchase_cop:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        stamps_required:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        reward_valid_days:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        conditions:
+          type: string
+      required:
+      - min_purchase_cop
+      - reward_name
+      - stamps_required
+    PublicBusiness:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        contact_email:
+          type: string
+        contact_phone:
+          type: string
+        program:
+          allOf:
+          - $ref: '#/components/schemas/Program'
+          nullable: true
+        menu:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuItem'
+      required:
+      - address
+      - contact_email
+      - contact_phone
+      - description
+      - menu
+      - name
+      - program
+      - slug
+    Purchase:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        customer_email:
+          type: string
+          format: email
+        amount_cop:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        reference:
+          type: string
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        registered_by_email:
+          type: string
+          format: email
+        reversed:
+          type: boolean
+          readOnly: true
+        reversal_reason:
+          type: string
+          nullable: true
+          readOnly: true
+        reward_id:
+          type: integer
+          nullable: true
+          readOnly: true
+      required:
+      - amount_cop
+      - created_at
+      - customer_email
+      - id
+      - reference
+      - registered_by_email
+      - reversal_reason
+      - reversed
+      - reward_id
+    PurchaseInRequest:
+      type: object
+      properties:
+        customer_email:
+          type: string
+          format: email
+          minLength: 1
+        amount_cop:
+          type: integer
+          minimum: 1
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 64
+      required:
+      - amount_cop
+      - customer_email
+      - reference
+    PurchaseResult:
+      type: object
+      properties:
+        created:
+          type: boolean
+        stamps:
+          type: integer
+        stamps_required:
+          type: integer
+        purchase:
+          $ref: '#/components/schemas/Purchase'
+      required:
+      - created
+      - purchase
+      - stamps
+      - stamps_required
+    RecentPurchase:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        amount_cop:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        reversed:
+          type: boolean
+          readOnly: true
+      required:
+      - amount_cop
+      - created_at
+      - id
+      - reversed
+    ReverseRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 300
+      required:
+      - reason
+    Reward:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        status:
+          type: string
+          maxLength: 10
+        earned_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - earned_at
+      - expires_at
+      - id
+    RoleEnum:
+      enum:
+      - admin
+      - staff
+      type: string
+      description: |-
+        * `admin` - admin
+        * `staff` - staff
+    Summary:
+      type: object
+      properties:
+        customers:
+          type: integer
+        purchases:
+          type: integer
+        stamps_credited:
+          type: integer
+        rewards_earned:
+          type: integer
+        rewards_redeemed:
+          type: integer
+        rewards_available:
+          type: integer
+        returning_customers:
+          type: integer
+          description: Clientes con 2+ compras en el periodo
+        daily:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyStamps'
+          description: Sellos por día, últimos 7 días hasta `end`
+      required:
+      - customers
+      - daily
+      - purchases
+      - returning_customers
+      - rewards_available
+      - rewards_earned
+      - rewards_redeemed
+      - stamps_credited
+    TypeEnum:
+      enum:
+      - purchase
+      - reversal
+      - redemption
+      type: string
+      description: |-
+        * `purchase` - purchase
+        * `reversal` - reversal
+        * `redemption` - redemption
+    VerifyRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        code:
+          type: string
+          minLength: 1
+          maxLength: 10
+      required:
+      - code
+      - email
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

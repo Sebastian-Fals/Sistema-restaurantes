@@ -1,0 +1,61 @@
+/* Experiencia del cliente (móvil primero, 390 px de referencia, funcional desde 320 px). */
+.shell { max-width: 480px; margin: 0 auto; padding-bottom: 88px; }
+.foot { margin-top: 32px; font-size: 13px; color: var(--muted, #65716b); text-align: center; }
+.top { display: flex; justify-content: space-between; align-items: center; margin: -8px 0 24px; }
+.brand { font-family: var(--font-serif), serif; font-size: 28px; color: var(--forest); text-decoration: none; line-height: 1; }
+.iconLink { display: grid; place-items: center; width: 44px; height: 44px; color: var(--forest); border-radius: 8px; }
+.subtitle { color: var(--muted); margin: 0 0 24px; }
+
+.nav { position: fixed; inset: auto 0 0; z-index: 10; display: flex; justify-content: center; gap: 8px; background: var(--paper); border-top: 1px solid var(--border); padding: 4px 16px calc(4px + env(safe-area-inset-bottom)); }
+.nav a { flex: 0 1 160px; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--ink); text-decoration: none; font-size: 14px; border-radius: 8px; }
+.nav a[aria-current="page"] { color: var(--forest); font-weight: 700; background: var(--sage); }
+
+/* Tarjeta de sellos */
+.stampCard { display: block; background: var(--forest); color: #fff; border-radius: 16px; padding: 24px; margin: 0 0 16px; text-decoration: none; }
+.stampCard h2 { color: #fff; font-size: 30px; margin: 0; }
+.stampCard p { margin: 4px 0 0; }
+.stamps { display: grid; grid-template-columns: repeat(5, minmax(0, 40px)); justify-content: space-between; gap: 12px 8px; margin: 24px 0; }
+.stamp { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-size: 14px; background: rgb(255 255 255 / .14); color: var(--sage); }
+.stamp.on { background: var(--lime); color: var(--forest); }
+.count { color: var(--lime); font-size: 20px; font-weight: 700; }
+.small { font-size: 14px; }
+.hint { color: var(--forest); font-weight: 700; margin: 0 0 32px; }
+
+/* Recompensa y código */
+.reward { background: var(--lime); border-radius: 16px; padding: 24px; margin: 16px 0; text-align: center; }
+.reward h2 { font-size: 30px; color: var(--forest); }
+.reward p { margin: 4px 0 0; }
+.codeBox { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; padding: 24px 16px; margin: 16px 0; text-align: center; }
+.code { font-size: clamp(26px, 9vw, 34px); font-weight: 700; letter-spacing: .02em; font-variant-numeric: tabular-nums; margin: 8px 0 0; overflow-wrap: anywhere; }
+.label { font: 500 16px/1.5 var(--font-sans), sans-serif; margin: 0; }
+.badge { display: inline-block; background: var(--sage); border-radius: 8px; padding: 2px 10px; font-size: 14px; font-weight: 500; }
+
+/* Actividad */
+.activity { list-style: none; padding: 0; margin: 8px 0 0; }
+.activity li { display: flex; justify-content: space-between; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.activity .reversed { color: var(--muted); }
+.activity .reversed strong { text-decoration: line-through; font-weight: 500; }
+
+/* Botones a todo el ancho del diseño */
+.actions { display: grid; gap: 12px; margin-top: 24px; }
+.actions > * { width: 100%; margin: 0; }
+.btnLink { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.secondaryLink { background: var(--paper); color: var(--forest); border: 1px solid var(--border); }
+
+/* Acceso */
+.codeInput { font-size: 28px; letter-spacing: .4em; text-align: center; font-variant-numeric: tabular-nums; min-height: 56px; }
+.field input[aria-invalid="true"] { border-color: var(--error); }
+
+/* Cuenta */
+.prefRow { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.prefRow p { margin: 0; }
+.switch { appearance: none; flex: none; width: 52px; min-height: 32px; height: 32px; padding: 0; border-radius: 16px; border: 1px solid var(--border); background: var(--border); position: relative; cursor: pointer; margin: 6px 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--paper); }
+.switch:checked { background: var(--forest); border-color: var(--forest); }
+.switch:checked::after { left: 23px; }
+.dangerTitle { color: var(--error); margin-top: 40px; }
+.warning { background: #fbeceb; color: var(--error); border-radius: 16px; padding: 24px; margin: 0 0 24px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .stamp, .switch::after { transition: background .18s, left .12s; }
+}

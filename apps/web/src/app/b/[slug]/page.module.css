@@ -1,0 +1,51 @@
+/* Página pública del negocio — sigue los boards de Penpot "Café Olivo" y "Tu café de cortesía" (390 px). */
+.page { max-width: 1080px; margin: 0 auto; padding: 16px 16px 64px; } /* con .wide global: ancho propio */
+.top { display: flex; align-items: center; justify-content: space-between; min-height: 48px; margin-bottom: 24px; }
+.brand { font-family: var(--font-serif), serif; font-size: 25px; line-height: 1; color: var(--forest); text-decoration: none; }
+.account { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; color: var(--forest); }
+
+.name { font-family: var(--font-sans), sans-serif; font-size: 30px; font-weight: 500; margin: 0 0 8px; overflow-wrap: anywhere; }
+.lead { font-size: 14px; color: var(--muted); margin: 0; }
+.chip { display: inline-block; margin-top: 16px; padding: 4px 12px; border-radius: 999px; background: var(--sage); font-size: 12px; font-weight: 600; }
+
+.section { margin-top: 32px; }
+.h2 { font-family: var(--font-sans), sans-serif; font-size: 21px; font-weight: 500; margin: 0 0 8px; }
+
+.card { margin-top: 32px; padding: 24px; border-radius: 16px; background: var(--forest); color: #fff; }
+.cardName { font-family: var(--font-sans), sans-serif; font-size: 24px; font-weight: 500; margin: 0 0 4px; }
+.cardLead { margin: 0; font-size: 14px; color: #d7e4d7; }
+.stamps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px 8px; list-style: none; padding: 0; margin: 24px 0; max-width: 300px; }
+.stamps li { aspect-ratio: 1; max-width: 40px; border-radius: 50%; background: rgb(255 255 255 / .12); color: #d4e0d6; display: grid; place-items: center; font-size: 13px; }
+.count { margin: 0; font-size: 19px; font-weight: 600; color: var(--lime); }
+.cardNote { margin: 4px 0 0; font-size: 12px; color: #e0eadd; }
+
+.rules { margin: 0; font-size: 15px; color: var(--muted); }
+.fine { margin: 16px 0 0; font-size: 13px; color: var(--muted); }
+.cta { width: 100%; margin-top: 24px; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0 0 8px; }
+.tabs a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--sage); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
+.tabs a:hover { background: var(--lime); }
+
+.cat { scroll-margin-top: 16px; }
+.cat h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 24px 0 0; }
+.items { list-style: none; padding: 0; margin: 0; }
+.item { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.itemName { font-size: 18px; font-weight: 500; }
+.itemDesc { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.price { flex-shrink: 0; font-size: 13px; font-weight: 600; color: var(--forest); white-space: nowrap; padding-top: 4px; }
+.off .itemName, .off .price { color: var(--muted); }
+.badge { display: inline-block; margin-top: 8px; padding: 2px 8px; border: 1px solid var(--terracotta); border-radius: 999px; color: var(--terracotta); font-size: 12px; font-weight: 600; }
+
+.foot { margin: 24px 0 0; font-size: 12px; color: var(--muted); }
+
+/* Escritorio: programa fijo a la derecha, menú a la izquierda. */
+.support { margin-top: 32px; text-align: center; font-size: 13px; color: var(--muted, #65716b); }
+@media (min-width: 960px) {
+  .page { padding: 24px 32px 64px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-areas: "intro aside" "menu aside"; gap: 0 64px; align-items: start; }
+  .intro { grid-area: intro; }
+  .menu { grid-area: menu; }
+  .aside { grid-area: aside; position: sticky; top: 24px; }
+  .aside .card { margin-top: 0; }
+}
