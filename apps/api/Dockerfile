@@ -6,7 +6,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev
 COPY . .
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
-RUN SECRET_KEY=build python manage.py collectstatic --noinput
+# collectstatic no necesita BD real; se usa una URL ficticia solo en build.
+RUN DATABASE_URL=postgres://build:build@localhost/build SECRET_KEY=build python manage.py collectstatic --noinput
 RUN useradd --system --uid 10001 mesa
 USER mesa
 EXPOSE 8000

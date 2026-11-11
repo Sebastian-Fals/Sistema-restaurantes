@@ -1,6 +1,18 @@
 import os
 from pathlib import Path
 
+# Carga opcional de apps/api/.env (no dependencia externa).
+_env_file = Path(__file__).resolve().parent.parent / ".env"
+if _env_file.is_file():
+    for _line in _env_file.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _key, _, _val = _line.partition("=")
+        _key, _val = _key.strip(), _val.strip()
+        if _key and _key not in os.environ:
+            os.environ[_key] = _val
+
 import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
