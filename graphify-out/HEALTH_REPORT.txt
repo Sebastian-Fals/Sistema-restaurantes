@@ -1,0 +1,41 @@
+[graphify] MultiDiGraph edge-collapse diagnostic
+input: <in-memory>
+input_stage: provided JSON (normal graph.json is post-build)
+effective_directed: <direct-call>
+nodes: 766
+unverified_code_nodes: 0
+raw_edges: 1867
+valid_candidate_edges: 1867
+missing_endpoint_edges: 0
+dangling_endpoint_edges: 0
+external_reference_edges: 0
+self_loop_edges: 0
+exact_duplicate_edges: 0
+directed_unique_endpoint_pairs: 1774
+directed_same_endpoint_collapsed_edges: 93
+undirected_unique_endpoint_pairs: 1767
+undirected_same_endpoint_collapsed_edges: 100
+same_endpoint_group_count: 80
+relation_variant_groups: 62
+source_file_variant_groups: 0
+source_location_variant_groups: 17
+context_variant_groups: 1
+post_build_graph_type: Graph
+post_build_edges: 1767
+producer_suppression_sites: 12
+producer_suppression_examples:
+  - L1901 seen_ids arity=unknown
+  - L2596 seen_ids arity=unknown
+  - L2598 seen_doc_refs arity=unknown
+  - L3265 seen_ids arity=unknown
+  - L3412 seen_ids arity=unknown
+  - L5144 seen_keys arity=unknown
+  - L5330 seen_keys arity=unknown
+  - L9753 seen_ids arity=unknown
+examples:
+  - github_workflows_ci_web_steps -> github_workflows_ci_steps_run edges=4 relations=['contains'] locations=['L49', 'L50', 'L51', 'L53'] contexts=['']
+  - github_workflows_ci_web_steps -> github_workflows_ci_steps_uses edges=3 relations=['contains'] locations=['L40', 'L41', 'L44'] contexts=['']
+  - apps_api_mesa_container_request_login_code -> apps_api_mesa_identity_use_cases_requestlogincode edges=3 relations=['calls', 'references', 'uses'] locations=['L20', 'L21'] contexts=['', 'call', 'return_type']
+  - apps_api_mesa_container_verify_login_code -> apps_api_mesa_identity_use_cases_verifylogincode edges=3 relations=['calls', 'references', 'uses'] locations=['L24', 'L25'] contexts=['', 'call', 'return_type']
+  - apps_api_mesa_container_register_purchase -> apps_api_mesa_loyalty_use_cases_registerpurchase edges=3 relations=['calls', 'references', 'uses'] locations=['L28', 'L29'] contexts=['', 'call', 'return_type']
+note: normal graph.json is post-build; raw producer loss must be measured earlier.
