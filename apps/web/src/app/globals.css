@@ -1,0 +1,29 @@
+:root {
+  --forest: #234d3c; --ink: #202d28; --cream: #f7f6f2; --paper: #fff; --sage: #eaf0e7;
+  --lime: #dceba9; --terracotta: #b75232; --border: #dce1d9; --muted: #65716b; --error: #a43832;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--cream); color: var(--ink); font: 16px/1.5 var(--font-sans), system-ui, sans-serif; }
+h1, h2 { font-family: var(--font-serif), serif; font-weight: 400; line-height: 1.15; margin: 0 0 8px; }
+h1 { font-size: 34px; } h2 { font-size: 24px; } h3 { font-size: 20px; margin: 0 0 8px; }
+main { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+a { color: var(--forest); }
+.card { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin: 16px 0; }
+.muted { color: var(--muted); }
+label { display: block; font-weight: 500; margin: 16px 0 4px; }
+input, select { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: var(--paper); }
+button, .btn { min-height: 48px; padding: 0 20px; border: 0; border-radius: 8px; background: var(--forest); color: #fff; font: inherit; font-weight: 500; cursor: pointer; margin-top: 16px; }
+button.secondary { background: transparent; color: var(--forest); border: 1px solid var(--forest); }
+button.danger { background: var(--error); }
+button:disabled { opacity: .6; cursor: progress; }
+:focus-visible { outline: 3px solid var(--terracotta); outline-offset: 2px; }
+.status { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--sage); }
+.status.error { background: #fbeceb; color: var(--error); }
+.stamps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 16px 0; }
+.stamp { aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--forest); display: grid; place-items: center; font-weight: 700; }
+.stamp.on { background: var(--lime); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.kpi { background: var(--sage); border-radius: 8px; padding: 12px; } .kpi b { display: block; font-size: 24px; }
+@media (prefers-reduced-motion: no-preference) { .stamp { transition: background .18s; } }

@@ -1,0 +1,17 @@
+# La base de datos es EXTERNA: define DATABASE_URL en apps/api/.env (ver .env.example).
+services:
+  api:
+    build: ./apps/api
+    env_file: ./apps/api/.env
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000" # admin interno (/admin) solo desde la máquina local
+  web:
+    build:
+      context: ./apps/web
+      args:
+        API_URL: http://api:8000
+    depends_on: [api]
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
