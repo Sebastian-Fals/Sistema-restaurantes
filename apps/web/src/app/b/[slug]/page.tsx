@@ -1,56 +1,105 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { serverApi } from "@/api/server";
 import { cop } from "@/api/format";
 import { ActivateButton } from "./activate-button";
+import { Header } from "./header";
+import s from "./page.module.css";
 
-export default async function BusinessPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const { data: b, response } = await serverApi.GET("/api/v1/public/b/{slug}", { params: { path: { slug } } });
+type Props = { params: Promise<{ slug: string }> };
+
+// cache: generateMetadata y la página comparten una sola llamada por request.
+const load = cache(async (slug: string) => {
+  const { data, response } = await serverApi.GET("/api/v1/public/b/{slug}", { params: { path: { slug } } });
   if (response.status === 404) notFound();
-  if (!b) throw new Error("No se pudo cargar el negocio");
+  if (!data) throw new Error("No se pudo cargar el negocio");
+  return data;
+});
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const b = await load(slug);
+  return { title: `${b.name} — Mesa`, description: b.description };
+}
+
+export default async function BusinessPage({ params }: Props) {
+  const { slug } = await params;
+  const b = await load(slug);
+  const p = b.program;
   const categories = [...new Set(b.menu.map((i) => i.category))];
+
   return (
-    <>
-      <h1>{b.name}</h1>
-      <p className="muted">{[b.description, b.address].filter(Boolean).join(" · ")}</p>
+    <div className={`wide ${s.page}`}>
+      <Header />
+      <div className={s.layout}>
+        <div className={s.intro}>
+          <h1 className={s.name}>{b.name}</h1>
+          {b.description && <p className={s.lead}>{b.description}</p>}
+          {b.address && <p className={s.lead}>{b.address}</p>}
+          <span className={s.chip}>Menú público</span>
+        </div>
 
-      {b.program && (
-        <section className="card" aria-labelledby="programa">
-          <h2 id="programa">Programa de sellos</h2>
-          <p>
-            Acumula {b.program.stamps_required} sellos y recibe: <strong>{b.program.reward_name}</strong>. Cada compra pagada de{" "}
-            {cop(b.program.min_purchase_cop)} o más suma un sello. La recompensa vale {b.program.reward_valid_days} días.
-          </p>
-          {b.program.conditions && <p className="muted">{b.program.conditions}</p>}
-          <ActivateButton slug={b.slug} />
-        </section>
-      )}
+        {p && (
+          <section className={s.aside} aria-labelledby="programa">
+            <div className={s.card}>
+              <h2 id="programa" className={s.cardName}>{b.name}</h2>
+              <p className={s.cardLead}>Tu próximo café empieza aquí.</p>
+              <ol className={s.stamps} aria-hidden="true">
+                {Array.from({ length: p.stamps_required }, (_, i) => <li key={i}>{i + 1}</li>)}
+              </ol>
+              <p className={s.count}>0 de {p.stamps_required} sellos</p>
+              <p className={s.cardNote}>{p.stamps_required} compras válidas = {p.reward_name}</p>
+            </div>
 
-      <section aria-labelledby="menu">
-        <h2 id="menu">Menú</h2>
-        {b.menu.length === 0 && <p className="muted">Aún no hay productos publicados.</p>}
-        {categories.map((c) => (
-          <div className="card" key={c}>
-            <h3>{c}</h3>
-            <table>
-              <tbody>
+            <div className={s.section}>
+              <h3 className={s.h2}>Así acumulas</h3>
+              <p className={s.rules}>
+                Una compra pagada de {cop(p.min_purchase_cop)} o más suma un sello. Al completar {p.stamps_required}, recibes{" "}
+                <strong>{p.reward_name}</strong>.
+              </p>
+              <p className={s.fine}>
+                {p.reward_valid_days != null ? `Tienes ${p.reward_valid_days} días para canjear la recompensa. ` : ""}
+                {p.conditions}
+              </p>
+              <ActivateButton slug={b.slug} className={s.cta} />
+            </div>
+          </section>
+        )}
+
+        <section className={`${s.section} ${s.menu}`} aria-labelledby="menu">
+          <h2 id="menu" className={s.h2}>Menú</h2>
+          {b.menu.length === 0 ? (
+            <p className={s.lead}>Aún no hay productos publicados.</p>
+          ) : (
+            categories.length > 1 && (
+              <nav aria-label="Categorías del menú">
+                <ul className={s.tabs}>
+                  {categories.map((c, n) => <li key={c}><a href={`#cat-${n}`}>{c}</a></li>)}
+                </ul>
+              </nav>
+            )
+          )}
+          {categories.map((c, n) => (
+            <div className={s.cat} id={`cat-${n}`} key={c}>
+              <h3>{c}</h3>
+              <ul className={s.items}>
                 {b.menu.filter((i) => i.category === c).map((i) => (
-                  <tr key={i.name}>
-                    <td>
-                      {i.name}
-                      {i.description && <div className="muted">{i.description}</div>}
-                      {!i.available && <div className="muted">No disponible hoy</div>}
-                    </td>
-                    <td style={{ textAlign: "right" }}>{cop(i.price_cop)}</td>
-                  </tr>
+                  <li key={i.name} className={`${s.item} ${i.available === false ? s.off : ""}`}>
+                    <div>
+                      <span className={s.itemName}>{i.name}</span>
+                      {i.description && <p className={s.itemDesc}>{i.description}</p>}
+                      {i.available === false && <span className={s.badge}>No disponible hoy</span>}
+                    </div>
+                    <span className={s.price}>{cop(i.price_cop)}</span>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
-        <p className="muted">Precios informativos. Este negocio participa en un piloto de software.</p>
-      </section>
-    </>
+              </ul>
+            </div>
+          ))}
+          <p className={s.foot}>Precios en COP, informativos. Consulta ingredientes al personal.</p>
+        </section>
+      </div>
+    </div>
   );
 }
