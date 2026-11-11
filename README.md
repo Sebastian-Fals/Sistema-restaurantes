@@ -7,6 +7,13 @@ Hexagonal por módulo (`identity`, `loyalty`): `domain.py` (reglas puras) → `p
 `use_cases.py` (comandos) → `adapters/` (ORM, Resend/consola) → `api/` (DRF). `container.py` es la raíz de composición.
 Las lecturas van por `selectors.py` (CQRS ligero). Idempotencia: `reference` única por negocio.
 
+Patrones: **Ports & Adapters** (los casos de uso solo conocen `Protocol`s; Django vive en `adapters/` y `api/`) ·
+**Repository** (`DjangoLoyaltyRepository`, `DjangoLoginCodeStore`) · **Command/Use Case** (`RegisterPurchase`,
+`ActivateCard`, `LookupCustomer`, `DeleteAccount`…: un objeto invocable por intención) · **Composition Root**
+(`container.py`, único sitio que instancia adaptadores) · **Strategy** (`make_mailer`: Resend o consola según
+configuración) · **CQRS ligero** (comandos por casos de uso, lecturas por `selectors.py`). Las vistas solo validan,
+llaman a `container.*()`/selectors y serializan; los casos de uso se prueban con dobles sin BD (`tests/test_use_cases.py`).
+
 ## Desarrollo
 ```bash
 cd apps/api && uv sync && uv run pytest                     # tests (SQLite en memoria)

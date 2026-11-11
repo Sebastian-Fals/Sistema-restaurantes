@@ -107,3 +107,12 @@ def reverse_stamp(
     if new_stamps >= rules.stamps_required:
         raise NeedsSupport("El reverso reabre la tarjeta más allá de una recompensa: escalar a soporte.")
     return new_stamps, reward
+
+
+def parse_customer_query(q: str) -> tuple[str | None, str | None]:
+    """Interpreta la búsqueda del personal: (correo, código de 6 dígitos). Ej. "OLI · 482 916" -> código."""
+    q = q.strip().lower()
+    if "@" in q:
+        return q, None
+    digits = "".join(ch for ch in q if ch.isdigit())
+    return None, (digits if len(digits) == 6 else None)
