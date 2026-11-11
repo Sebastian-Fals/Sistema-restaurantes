@@ -340,17 +340,13 @@ export interface components {
             category: string;
             name: string;
             description?: string;
-            /** Format: int64 */
             price_cop: number;
             available?: boolean;
         };
         Program: {
             reward_name: string;
-            /** Format: int64 */
             min_purchase_cop: number;
-            /** Format: int64 */
             stamps_required: number;
-            /** Format: int64 */
             reward_valid_days?: number;
             conditions?: string;
         };
@@ -368,7 +364,6 @@ export interface components {
             readonly id: number;
             /** Format: email */
             customer_email: string;
-            /** Format: int64 */
             amount_cop: number;
             reference: string;
             /** Format: date-time */
@@ -393,7 +388,6 @@ export interface components {
         };
         RecentPurchase: {
             readonly id: number;
-            /** Format: int64 */
             amount_cop: number;
             /** Format: date-time */
             readonly created_at: string;

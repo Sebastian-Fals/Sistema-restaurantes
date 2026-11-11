@@ -3,6 +3,11 @@ from rest_framework import serializers
 
 from mesa.loyalty import models as m
 
+# Topes de PostgreSQL (BD de producción) explícitos: si no, DRF los toma del backend activo
+# y el esquema OpenAPI cambiaría entre SQLite y PostgreSQL.
+INT = {"max_value": 2_147_483_647}
+SMALLINT = {"max_value": 32_767}
+
 
 class ErrorSerializer(serializers.Serializer):
     code = serializers.CharField()
@@ -13,12 +18,14 @@ class MenuItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = m.MenuItem
         fields = ["category", "name", "description", "price_cop", "available"]
+        extra_kwargs = {"price_cop": INT}
 
 
 class ProgramSerializer(serializers.ModelSerializer):
     class Meta:
         model = m.Program
         fields = ["reward_name", "min_purchase_cop", "stamps_required", "reward_valid_days", "conditions"]
+        extra_kwargs = {"min_purchase_cop": INT, "stamps_required": SMALLINT, "reward_valid_days": SMALLINT}
 
 
 class PublicBusinessSerializer(serializers.Serializer):
@@ -51,6 +58,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "id", "customer_email", "amount_cop", "reference", "created_at",
             "registered_by_email", "reversed", "reversal_reason", "reward_id",
         ]
+        extra_kwargs = {"amount_cop": INT}
 
     def get_reversed(self, p) -> bool:
         return hasattr(p, "reversal")
@@ -70,6 +78,7 @@ class RecentPurchaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = m.Purchase
         fields = ["id", "amount_cop", "created_at", "reversed"]
+        extra_kwargs = {"amount_cop": INT}
 
     def get_reversed(self, p) -> bool:
         return hasattr(p, "reversal")

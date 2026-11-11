@@ -688,9 +688,8 @@ components:
           maxLength: 300
         price_cop:
           type: integer
-          maximum: 9223372036854775807
+          maximum: 2147483647
           minimum: 0
-          format: int64
         available:
           type: boolean
       required:
@@ -705,19 +704,16 @@ components:
           maxLength: 120
         min_purchase_cop:
           type: integer
-          maximum: 9223372036854775807
+          maximum: 2147483647
           minimum: 0
-          format: int64
         stamps_required:
           type: integer
-          maximum: 9223372036854775807
+          maximum: 32767
           minimum: 0
-          format: int64
         reward_valid_days:
           type: integer
-          maximum: 9223372036854775807
+          maximum: 32767
           minimum: 0
-          format: int64
         conditions:
           type: string
       required:
@@ -767,9 +763,8 @@ components:
           format: email
         amount_cop:
           type: integer
-          maximum: 9223372036854775807
+          maximum: 2147483647
           minimum: 0
-          format: int64
         reference:
           type: string
           maxLength: 64
@@ -843,9 +838,8 @@ components:
           readOnly: true
         amount_cop:
           type: integer
-          maximum: 9223372036854775807
+          maximum: 2147483647
           minimum: 0
-          format: int64
         created_at:
           type: string
           format: date-time
