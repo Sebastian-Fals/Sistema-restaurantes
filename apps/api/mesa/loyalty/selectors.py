@@ -2,11 +2,14 @@
 
 from collections import Counter
 from datetime import date, datetime, time, timedelta
+from types import SimpleNamespace
 
 from django.db.models import Count
 from django.utils import timezone
 
-from .models import Card, Purchase, PurchaseReversal, Reward
+from mesa.identity.models import User
+
+from .models import Business, Card, Program, Purchase, PurchaseReversal, Reward
 
 
 def day_bounds(start: date, end: date) -> tuple[datetime, datetime]:
@@ -71,13 +74,44 @@ def activity(business, start: date, end: date, kind: str | None, limit: int = 20
     return sorted(events, key=lambda e: e["at"], reverse=True)[:limit]
 
 
+def _available_rewards(business, customer_id) -> list[Reward]:
+    now = timezone.now()
+    return [
+        r for r in Reward.objects.filter(business=business, customer_id=customer_id, status=Reward.AVAILABLE)
+        if r.expires_at > now
+    ]
+
+
+def public_business(slug: str) -> SimpleNamespace | None:
+    b = Business.objects.filter(slug=slug, is_active=True).first()
+    return b and SimpleNamespace(
+        slug=b.slug, name=b.name, description=b.description, address=b.address,
+        contact_email=b.contact_email, contact_phone=b.contact_phone,
+        program=Program.objects.filter(business=b, is_active=True).first(),
+        menu=b.menu_items.all(),  # el menú es informativo; `available` se muestra tal cual
+    )
+
+
+def customer_profile(business, customer_id: int) -> dict:
+    """Lo que el personal ve del cliente en caja."""
+    card = Card.objects.filter(business=business, customer_id=customer_id).select_related("business").first()
+    return {
+        "email": User.objects.values_list("email", flat=True).get(pk=customer_id),
+        "customer_code": card.display_code if card else None,
+        "stamps": card.stamps if card else 0,
+        "stamps_required": Program.objects.get(business=business).stamps_required,
+        "rewards": _available_rewards(business, customer_id),
+    }
+
+
+def card_view_by_id(card_id: int) -> dict:
+    return card_view(Card.objects.select_related("business__program", "customer").get(pk=card_id))
+
+
 def card_view(card: Card) -> dict:
     """Tarjeta del cliente con recompensas y actividad reciente."""
     b = card.business
-    now = timezone.now()
-    rewards = [
-        r for r in Reward.objects.filter(business=b, customer=card.customer, status=Reward.AVAILABLE) if r.expires_at > now
-    ]
+    rewards = _available_rewards(b, card.customer_id)
     return {
         "customer_code": card.display_code,
         "business_slug": b.slug,

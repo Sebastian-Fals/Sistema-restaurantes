@@ -1,6 +1,6 @@
 from datetime import timedelta
-from types import SimpleNamespace
 
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from mesa import container
-from mesa.identity.models import User
 from mesa.loyalty import models as m
 from mesa.loyalty import selectors
 
@@ -33,11 +32,7 @@ class MeView(APIView):
     @extend_schema(responses={204: None})
     def delete(self, request):
         """Elimina la cuenta: anonimiza el correo; las compras se conservan sin dato personal."""
-        u = request.user
-        u.email, u.is_active = f"eliminado-{u.pk}@invalid.local", False
-        u.set_unusable_password()
-        u.save()
-        m.Consent.objects.filter(customer=u).delete()
+        container.delete_account()(request.user.id)
         return Response(status=204)
 
 
@@ -46,13 +41,9 @@ class PublicBusinessView(APIView):
 
     @extend_schema(responses={200: s.PublicBusinessSerializer, 404: s.ErrorSerializer})
     def get(self, request, slug):
-        b = get_object_or_404(m.Business, slug=slug, is_active=True)
-        view = SimpleNamespace(
-            slug=b.slug, name=b.name, description=b.description, address=b.address,
-            contact_email=b.contact_email, contact_phone=b.contact_phone,
-            program=m.Program.objects.filter(business=b, is_active=True).first(),
-            menu=b.menu_items.all(),  # el menú es informativo; `available` se muestra tal cual
-        )
+        view = selectors.public_business(slug)
+        if view is None:
+            raise Http404
         return Response(s.PublicBusinessSerializer(view).data)
 
 
@@ -69,11 +60,8 @@ class ActivateCardView(BusinessScoped, generics.GenericAPIView):
     @extend_schema(request=None, responses={200: s.CardSerializer, 409: s.ErrorSerializer})
     def post(self, request, slug):
         """El cliente activa su tarjeta (vacía) en un negocio con programa activo."""
-        business = self.business
-        if not m.Program.objects.filter(business=business, is_active=True).exists():
-            return Response({"code": "no_active_program", "detail": "El negocio no tiene programa activo."}, status=409)
-        card, _ = m.Card.objects.get_or_create(business=business, customer=request.user)
-        return Response(s.CardSerializer(selectors.card_view(card)).data)
+        card = container.activate_card()(self.business.id, request.user.id)
+        return Response(s.CardSerializer(selectors.card_view_by_id(card.id)).data)
 
 
 class ConsentView(BusinessScoped, generics.GenericAPIView):
@@ -83,10 +71,7 @@ class ConsentView(BusinessScoped, generics.GenericAPIView):
     def put(self, request, slug):
         data = self.get_serializer(data=request.data)
         data.is_valid(raise_exception=True)
-        m.Consent.objects.update_or_create(
-            business=self.business, customer=request.user, channel="email",
-            defaults={"granted": data.validated_data["granted"]},
-        )
+        container.set_consent()(self.business.id, request.user.id, data.validated_data["granted"])
         return Response(data.validated_data)
 
 
@@ -100,30 +85,8 @@ class CustomerLookupView(BusinessScoped, APIView):
     )
     def get(self, request, slug):
         business = self.business
-        q = request.query_params.get("q", "").strip().lower()
-        digits = "".join(ch for ch in q if ch.isdigit())
-        if "@" in q:
-            user = User.objects.filter(email=q, is_active=True).first()
-        else:
-            card = m.Card.objects.filter(business=business, code=digits, customer__is_active=True).first() if len(digits) == 6 else None
-            user = card and card.customer
-        program = m.Program.objects.filter(business=business).first()
-        if user is None or program is None:
-            return Response({"code": "unknown_customer", "detail": "No encontramos un cliente con ese código o correo."}, status=404)
-        card = m.Card.objects.filter(business=business, customer=user).first()
-        now = timezone.now()
-        rewards = [
-            r for r in m.Reward.objects.filter(business=business, customer=user, status=m.Reward.AVAILABLE)
-            if r.expires_at > now
-        ]
-        body = {
-            "email": user.email,
-            "customer_code": card.display_code if card else None,
-            "stamps": card.stamps if card else 0,
-            "stamps_required": program.stamps_required,
-            "rewards": rewards,
-        }
-        return Response(s.CustomerLookupSerializer(body).data)
+        customer_id = container.lookup_customer()(business.id, request.query_params.get("q", ""))
+        return Response(s.CustomerLookupSerializer(selectors.customer_profile(business, customer_id)).data)
 
 
 def _purchase_qs(business):

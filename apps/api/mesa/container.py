@@ -6,7 +6,15 @@ from mesa.identity.adapters.mailers import make_mailer
 from mesa.identity.adapters.orm import DjangoLoginCodeStore, DjangoUserDirectory
 from mesa.identity.use_cases import RequestLoginCode, VerifyLoginCode
 from mesa.loyalty.adapters.orm import DjangoLoyaltyRepository
-from mesa.loyalty.use_cases import RedeemReward, RegisterPurchase, ReversePurchase
+from mesa.loyalty.use_cases import (
+    ActivateCard,
+    DeleteAccount,
+    LookupCustomer,
+    RedeemReward,
+    RegisterPurchase,
+    ReversePurchase,
+    SetConsent,
+)
 
 
 def request_login_code() -> RequestLoginCode:
@@ -27,3 +35,19 @@ def redeem_reward() -> RedeemReward:
 
 def reverse_purchase() -> ReversePurchase:
     return ReversePurchase(DjangoLoyaltyRepository())
+
+
+def activate_card() -> ActivateCard:
+    return ActivateCard(DjangoLoyaltyRepository())
+
+
+def lookup_customer() -> LookupCustomer:
+    return LookupCustomer(DjangoLoyaltyRepository())
+
+
+def set_consent() -> SetConsent:
+    return SetConsent(DjangoLoyaltyRepository())
+
+
+def delete_account() -> DeleteAccount:
+    return DeleteAccount(DjangoLoyaltyRepository())

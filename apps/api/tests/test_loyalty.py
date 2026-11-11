@@ -154,3 +154,35 @@ def test_lookup_by_customer_code_is_scoped_to_business(staff, customer):
     other = make_business("otro")
     m.Card.objects.create(business=other, customer=make_user("x@example.com"), code="999999")
     assert staff.get("/api/v1/b/olivo/customer", {"q": "999999"}).status_code == 404
+
+
+def test_activate_card_twice_returns_same_card(customer, olivo):
+    c = client_for(customer)
+    first, second = c.post("/api/v1/b/olivo/card").json(), c.post("/api/v1/b/olivo/card").json()
+    assert first["customer_code"] == second["customer_code"] and m.Card.objects.filter(customer=customer).count() == 1
+
+
+def test_activate_card_without_active_program_conflicts(customer, olivo):
+    m.Program.objects.filter(business=olivo).update(is_active=False)
+    r = client_for(customer).post("/api/v1/b/olivo/card")
+    assert r.status_code == 409 and r.json()["code"] == "no_active_program"
+
+
+def test_card_creation_race_reads_existing_card(customer, olivo, monkeypatch):
+    """Otra petición creó la tarjeta tras nuestra lectura: el INSERT viola uniq_card y se devuelve la existente."""
+    from django.db.models.query import QuerySet
+
+    from mesa.loyalty.adapters.orm import DjangoLoyaltyRepository
+
+    existing = m.Card.objects.create(business=olivo, customer=customer)
+    real_first, stale = QuerySet.first, [True]
+
+    def first_misses_once(qs):  # la primera lectura aún no ve la tarjeta de la otra petición
+        if qs.model is m.Card and stale:
+            stale.pop()
+            return None
+        return real_first(qs)
+
+    monkeypatch.setattr(QuerySet, "first", first_misses_once)
+    card = DjangoLoyaltyRepository().get_or_create_card(olivo.id, customer.id)
+    assert card.id == existing.id and m.Card.objects.filter(customer=customer).count() == 1

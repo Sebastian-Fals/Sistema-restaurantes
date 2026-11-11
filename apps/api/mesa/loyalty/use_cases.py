@@ -81,3 +81,37 @@ class ReversePurchase(_UseCase):
                 self.repo.mark_voided(to_void.id)
             self.repo.save_stamps(card.id, stamps)
             self.repo.add_reversal(purchase_id, reason, admin_id)
+
+
+class ActivateCard(_UseCase):
+    def __call__(self, business_id: int, customer_id: int) -> d.CardState:
+        """El cliente activa su tarjeta (vacía). Repetirlo devuelve la misma tarjeta."""
+        program = self.repo.program(business_id)
+        if program is None or not program.active:
+            raise d.NoActiveProgram("El negocio no tiene programa activo.")
+        return self.repo.get_or_create_card(business_id, customer_id)
+
+
+class LookupCustomer(_UseCase):
+    def __call__(self, business_id: int, query: str) -> int:
+        """Id del cliente buscado por correo o por código de tarjeta de ESTE negocio."""
+        email, code = d.parse_customer_query(query)
+        if email:
+            customer_id = self.repo.customer_id_by_email(email)
+        else:
+            customer_id = self.repo.customer_id_by_card_code(business_id, code) if code else None
+        if customer_id is None or self.repo.program(business_id) is None:
+            raise d.UnknownCustomer("No encontramos un cliente con ese código o correo.")
+        return customer_id
+
+
+class SetConsent(_UseCase):
+    def __call__(self, business_id: int, customer_id: int, granted: bool) -> None:
+        self.repo.set_consent(business_id, customer_id, "email", granted)
+
+
+class DeleteAccount(_UseCase):
+    def __call__(self, customer_id: int) -> None:
+        """Anonimiza la cuenta; las compras se conservan sin dato personal."""
+        with self.repo.atomic():
+            self.repo.anonymize_customer(customer_id)

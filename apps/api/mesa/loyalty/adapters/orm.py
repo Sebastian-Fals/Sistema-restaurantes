@@ -1,8 +1,8 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from mesa.identity.models import User
 from mesa.loyalty import domain as d
-from mesa.loyalty.models import Card, Program, Purchase, PurchaseReversal, Reward
+from mesa.loyalty.models import Card, Consent, Program, Purchase, PurchaseReversal, Reward
 
 
 def _reward(r: Reward | None) -> d.RewardState | None:
@@ -25,8 +25,27 @@ class DjangoLoyaltyRepository:
     def customer_id_by_email(self, email):
         return User.objects.filter(email=email, is_active=True).values_list("id", flat=True).first()
 
+    def customer_id_by_card_code(self, business_id, code):
+        return (
+            Card.objects.filter(business_id=business_id, code=code, customer__is_active=True)
+            .values_list("customer_id", flat=True)
+            .first()
+        )
+
+    def get_or_create_card(self, business_id, customer_id):
+        for _ in range(3):
+            card = Card.objects.filter(business_id=business_id, customer_id=customer_id).first()
+            if card is None:
+                try:
+                    with transaction.atomic():  # savepoint: el IntegrityError no rompe la transacción externa
+                        card = Card.objects.create(business_id=business_id, customer_id=customer_id)
+                except IntegrityError:
+                    continue  # carrera: otra petición creó esta tarjeta (uniq_card) o tomó el código (uniq_card_code)
+            return d.CardState(card.id, card.stamps)
+        raise IntegrityError("No se pudo crear la tarjeta tras varios intentos.")
+
     def lock_card(self, business_id, customer_id):
-        Card.objects.get_or_create(business_id=business_id, customer_id=customer_id)
+        self.get_or_create_card(business_id, customer_id)
         card = Card.objects.select_for_update().get(business_id=business_id, customer_id=customer_id)
         return d.CardState(card.id, card.stamps)
 
@@ -74,3 +93,15 @@ class DjangoLoyaltyRepository:
 
     def add_reversal(self, purchase_id, reason, admin_id):
         PurchaseReversal.objects.create(purchase_id=purchase_id, reason=reason, reversed_by_id=admin_id)
+
+    def set_consent(self, business_id, customer_id, channel, granted):
+        Consent.objects.update_or_create(
+            business_id=business_id, customer_id=customer_id, channel=channel, defaults={"granted": granted}
+        )
+
+    def anonymize_customer(self, customer_id):
+        u = User.objects.get(pk=customer_id)
+        u.email, u.is_active = f"eliminado-{u.pk}@invalid.local", False
+        u.set_unusable_password()
+        u.save()
+        Consent.objects.filter(customer_id=customer_id).delete()
