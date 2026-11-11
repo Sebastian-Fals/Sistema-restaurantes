@@ -18,16 +18,17 @@ llaman a `container.*()`/selectors y serializan; los casos de uso se prueban con
 Requisitos: Python 3.12 + [uv](https://docs.astral.sh/uv/), Node 22 + pnpm (versión fijada en `packageManager`).
 ```bash
 cd apps/api && uv sync
+# DATABASE_URL es obligatoria (PostgreSQL externo). Definela en apps/api/.env o en el entorno.
 DEBUG=true uv run python manage.py migrate
 DEBUG=true uv run python manage.py seed_demo              # negocio demo /b/cafe-olivo
-DEBUG=true uv run python manage.py runserver              # :8000 (SQLite local si no hay DATABASE_URL)
+DEBUG=true uv run python manage.py runserver              # :8000
 cd ../web && pnpm install && pnpm dev                     # :3000, proxy /api -> localhost:8000
 ```
 Los códigos de acceso salen por el log si no hay `RESEND_API_KEY`.
 
 ## Tests
 ```bash
-cd apps/api && uv run pytest                                                  # SQLite en memoria
+cd apps/api && uv run pytest                                                  # SQLite en memoria (solo tests)
 DATABASE_URL=postgres://usuario:clave@localhost:5432/mesa uv run pytest       # contra PostgreSQL, como en CI
 cd ../web && pnpm typecheck && pnpm build
 ```

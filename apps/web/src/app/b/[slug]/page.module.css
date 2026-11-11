@@ -40,6 +40,7 @@
 .foot { margin: 24px 0 0; font-size: 12px; color: var(--muted); }
 
 /* Escritorio: programa fijo a la derecha, menú a la izquierda. */
+.support { margin-top: 32px; text-align: center; font-size: 13px; color: var(--muted, #65716b); }
 @media (min-width: 960px) {
   .page { padding: 24px 32px 64px; }
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-areas: "intro aside" "menu aside"; gap: 0 64px; align-items: start; }

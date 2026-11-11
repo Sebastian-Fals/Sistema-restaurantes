@@ -35,6 +35,7 @@ export function CustomerShell({ title, subtitle, children, nav = true }: { title
           <Link href="/cuenta" aria-current={current("/cuenta")}><UserIcon />Mi cuenta</Link>
         </nav>
       )}
+      <footer className={s.foot}>Soporte: soporte@mesa.app</footer>
     </div>
   );
 }

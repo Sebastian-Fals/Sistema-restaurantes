@@ -100,6 +100,7 @@ export default async function BusinessPage({ params }: Props) {
           <p className={s.foot}>Precios en COP, informativos. Consulta ingredientes al personal.</p>
         </section>
       </div>
+      <footer className={s.support}>¿Necesitas ayuda? soporte@mesa.app</footer>
     </div>
   );
 }

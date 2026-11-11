@@ -1,5 +1,6 @@
 /* Experiencia del cliente (móvil primero, 390 px de referencia, funcional desde 320 px). */
 .shell { max-width: 480px; margin: 0 auto; padding-bottom: 88px; }
+.foot { margin-top: 32px; font-size: 13px; color: var(--muted, #65716b); text-align: center; }
 .top { display: flex; justify-content: space-between; align-items: center; margin: -8px 0 24px; }
 .brand { font-family: var(--font-serif), serif; font-size: 28px; color: var(--forest); text-decoration: none; line-height: 1; }
 .iconLink { display: grid; place-items: center; width: 44px; height: 44px; color: var(--forest); border-radius: 8px; }
