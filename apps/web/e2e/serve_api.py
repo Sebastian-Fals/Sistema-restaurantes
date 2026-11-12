@@ -26,8 +26,8 @@ with TemporaryDirectory(prefix="mesa-e2e-") as folder:
     from mesa.loyalty.models import Membership, Program
 
     log_path = Path(os.environ["MESA_E2E_LOG"])
-    log_path.write_text("")
-    logging.getLogger("mesa.identity.adapters.mailers").addHandler(logging.FileHandler(log_path))
+    log_path.write_text("", encoding="utf-8")
+    logging.getLogger("mesa.identity.adapters.mailers").addHandler(logging.FileHandler(log_path, encoding="utf-8"))
     call_command("migrate", verbosity=0)
     call_command("seed_demo", verbosity=0)
     Program.objects.filter(business__slug="cafe-olivo").update(stamps_required=3)

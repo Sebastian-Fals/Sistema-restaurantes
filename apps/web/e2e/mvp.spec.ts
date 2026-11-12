@@ -8,7 +8,7 @@ async function login(page: Page, email: string) {
   let code = "";
   await expect.poll(() => {
     const rows = readFileSync(process.env.MESA_E2E_LOG!, "utf8").split("\n");
-    code = rows.filter((row) => row.includes(`Código de acceso para ${email}:`)).at(-1)?.match(/: (\d{6})$/)?.[1] ?? "";
+    code = rows.filter((row) => row.includes(`Código de acceso para ${email}:`)).at(-1)?.match(/: (\d{6})\r?$/)?.[1] ?? "";
     return code;
   }).toMatch(/^\d{6}$/);
   await page.getByLabel("Código de acceso", { exact: true }).fill(code);
