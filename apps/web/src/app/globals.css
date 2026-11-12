@@ -11,12 +11,16 @@ a { color: var(--forest); }
 .card { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin: 16px 0; }
 .muted { color: var(--muted); }
 label { display: block; font-weight: 500; margin: 16px 0 4px; }
-input, select { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: var(--paper); }
+input, select { width: 100%; min-width: 0; min-height: 48px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; color: var(--ink); background: var(--paper); }
+input { caret-color: var(--forest); }
+::selection { background: var(--lime); color: var(--forest); }
 button, .btn { min-height: 48px; padding: 0 20px; border: 0; border-radius: 8px; background: var(--forest); color: #fff; font: inherit; font-weight: 500; cursor: pointer; margin-top: 16px; }
 button.secondary { background: transparent; color: var(--forest); border: 1px solid var(--forest); }
 button.danger { background: var(--error); }
 button:disabled { opacity: .6; cursor: progress; }
 :focus-visible { outline: 3px solid var(--terracotta); outline-offset: 2px; }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 8px; background: var(--forest); color: var(--paper); transform: translateY(-150%); }
+.skip-link:focus { transform: translateY(0); }
 .status { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--sage); }
 .status.error { background: #fbeceb; color: var(--error); }
 .stamps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 16px 0; }

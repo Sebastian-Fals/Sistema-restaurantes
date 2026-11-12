@@ -3,11 +3,11 @@
 import { CustomerShell, LoadError, Loading, StampCard, styles as s, useCards } from "@/features/customer/shell";
 
 export default function MyCards() {
-  const { cards, failed } = useCards();
+  const { cards, failed, retry } = useCards();
 
   return (
     <CustomerShell title={cards?.length === 0 ? "Aún no tienes tarjetas" : "Mis tarjetas"} subtitle={cards?.length ? "Tus próximos beneficios, en un solo lugar." : undefined}>
-      {failed ? <LoadError /> : !cards ? <Loading /> : cards.length === 0 ? (
+      {failed ? <LoadError retry={retry} /> : !cards ? <Loading /> : cards.length === 0 ? (
         <p className="muted">Escanea el QR de un establecimiento o abre el enlace de su menú para conocer su programa y activar tu primera tarjeta.</p>
       ) : (
         cards.map((c) => {

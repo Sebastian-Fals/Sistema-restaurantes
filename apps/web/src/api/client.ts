@@ -25,3 +25,10 @@ api.use(csrf);
 /** Mensaje legible a partir del cuerpo de error de la API. */
 export const errorMessage = (error: unknown, fallback = "Ocurrió un error. Intenta de nuevo.") =>
   (error as { detail?: string } | undefined)?.detail ?? fallback;
+
+/** fetch rejects for connection failures; keep them distinct from server responses. */
+export const offline = () => ({
+  data: undefined,
+  error: { code: "network_error", detail: "No pudimos conectar. Revisa tu conexión e intenta de nuevo." },
+  response: { status: 0 } as Response,
+});

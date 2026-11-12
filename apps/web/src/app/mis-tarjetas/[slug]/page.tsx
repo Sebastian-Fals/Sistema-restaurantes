@@ -7,13 +7,13 @@ import { CustomerShell, LoadError, Loading, shortDate, StampCard, styles as s, u
 
 export default function CardDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const { cards, failed } = useCards();
+  const { cards, failed, retry } = useCards();
   const card = cards?.find((c) => c.business_slug === slug);
 
   if (failed || !cards || !card)
     return (
       <CustomerShell title="Tu tarjeta">
-        {failed ? <LoadError /> : !cards ? <Loading /> : (
+        {failed ? <LoadError retry={retry} /> : !cards ? <Loading /> : (
           <p className="muted">No tienes una tarjeta en este negocio. <Link href={`/b/${slug}`}>Ver su programa</Link></p>
         )}
       </CustomerShell>

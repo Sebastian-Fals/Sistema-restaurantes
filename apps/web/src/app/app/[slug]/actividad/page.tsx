@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, errorMessage, type Schemas } from "@/api/client";
+import { api, errorMessage, offline, type Schemas } from "@/api/client";
 import { cop } from "@/api/format";
 import { dateTime, errorCode, isoDay, NoPermission, usePanel } from "../context";
 import s from "../panel.module.css";
@@ -20,6 +20,10 @@ export default function Activity() {
   const [detail, setDetail] = useState<Schemas["Purchase"] | null>(null);
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState<Msg | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const loadVersion = useRef(0);
   const detailRef = useRef<HTMLHeadingElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
 
@@ -30,43 +34,74 @@ export default function Activity() {
   }
 
   const load = useCallback(async () => {
+    const version = ++loadVersion.current;
+    setLoading(true);
+    setLoadError("");
+    setEvents(null);
     const query = { start, end, ...(kind ? { type: kind } : {}) };
-    const { data, error, response } = await api.GET("/api/v1/b/{slug}/activity", { params: { path: { slug }, query } });
+    const { data, error, response } = await api.GET("/api/v1/b/{slug}/activity", { params: { path: { slug }, query } }).catch(offline);
+    if (version !== loadVersion.current) return;
+    setLoading(false);
     if (response.status === 403) return setForbidden(true);
-    setEvents(data ?? []);
-    if (error) setMsg({ title: "No se pudo cargar la actividad", text: errorMessage(error), error: true });
+    if (error || !data) return setLoadError(errorMessage(error));
+    setEvents(data);
   }, [slug, start, end, kind]);
 
-  useEffect(() => { if (role === "admin") load(); }, [role, load]);
+  useEffect(() => {
+    if (role === "admin") load();
+    return () => { loadVersion.current += 1; };
+  }, [role, load]);
 
   async function open(id: number) {
+    if (busy) return;
+    setBusy(true);
     trigger.current = document.activeElement as HTMLElement | null;
     setMsg(null);
     setReason("");
-    const { data, error } = await api.GET("/api/v1/b/{slug}/purchases/{purchase_id}", { params: { path: { slug, purchase_id: id } } });
-    if (error || !data) return setMsg({ title: "Movimiento no disponible", text: errorMessage(error), error: true });
-    setDetail(data);
-    requestAnimationFrame(() => detailRef.current?.focus());
+    try {
+      const { data, error } = await api.GET("/api/v1/b/{slug}/purchases/{purchase_id}", { params: { path: { slug, purchase_id: id } } }).catch(offline);
+      if (error || !data) return setMsg({ title: "Movimiento no disponible", text: errorMessage(error), error: true });
+      setDetail(data);
+      requestAnimationFrame(() => detailRef.current?.focus());
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function reverse(e: React.FormEvent) {
     e.preventDefault();
-    if (!detail) return;
-    const { error } = await api.POST("/api/v1/b/{slug}/purchases/{purchase_id}/reverse", {
-      params: { path: { slug, purchase_id: detail.id } },
-      body: { reason: reason.trim() },
-    });
-    if (error) {
-      return setMsg(
-        errorCode(error) === "needs_support"
-          ? { title: "Escalar a soporte", text: `${errorMessage(error)} La recompensa derivada ya fue canjeada; no se modifica automáticamente.`, error: true }
-          : { title: "No se pudo anular", text: errorMessage(error), error: true },
-      );
+    if (!detail || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const { error, response } = await api.POST("/api/v1/b/{slug}/purchases/{purchase_id}/reverse", {
+        params: { path: { slug, purchase_id: detail.id } },
+        body: { reason: reason.trim() },
+      }).catch(offline);
+      // A lost response can follow a committed reversal. Read its state before asking to retry.
+      const fresh = !error || response.status === 0 || errorCode(error) === "already_reversed"
+        ? await api.GET("/api/v1/b/{slug}/purchases/{purchase_id}", { params: { path: { slug, purchase_id: detail.id } } }).catch(offline)
+        : null;
+      if (fresh?.data) setDetail(fresh.data);
+      if (fresh?.data?.reversed) {
+        setMsg({ title: "Reverso registrado", text: "La compra está anulada y se conserva el evento original con su motivo y responsable." });
+        await load();
+        return;
+      }
+      if (error) {
+        return setMsg(
+          errorCode(error) === "needs_support"
+            ? { title: "Escalar a soporte", text: `${errorMessage(error)} No se modifica automáticamente. Contacta a soporte con el número de compra.`, error: true }
+            : { title: "No se pudo confirmar el reverso", text: `${errorMessage(error)} Puedes consultar de nuevo el detalle o reintentar sobre esta misma compra.`, error: true },
+        );
+      }
+      // The server confirmed the write even if the following read failed.
+      setDetail({ ...detail, reversed: true, reversal_reason: reason.trim() });
+      setMsg({ title: "Reverso registrado", text: "Se conserva el evento original. No se pudo actualizar el detalle; vuelve a cargar la actividad." });
+      await load();
+    } finally {
+      setBusy(false);
     }
-    const fresh = await api.GET("/api/v1/b/{slug}/purchases/{purchase_id}", { params: { path: { slug, purchase_id: detail.id } } });
-    if (fresh.data) setDetail(fresh.data);
-    setMsg({ title: "Reverso registrado", text: "Se conserva el evento original y se descontó el sello." });
-    load();
   }
 
   if (role !== "admin" || forbidden) return <NoPermission />;
@@ -100,7 +135,10 @@ export default function Activity() {
         </div>
       </form>
 
-      {events ? <Movements events={events} onDetail={open} /> : <p role="status">Cargando…</p>}
+      {loading && <p role="status">Cargando actividad…</p>}
+      {busy && !detail && <p role="status">Cargando detalle…</p>}
+      {loadError && <div role="alert" className={`${s.notice} ${s.noticeError}`}><b>No se pudo cargar la actividad</b><span>{loadError}</span><button type="button" className={s.secondary} onClick={load}>Reintentar</button></div>}
+      {events && <Movements events={events} onDetail={open} disabled={busy} />}
 
       {msg && !detail && (
         <div role="alert" className={`${s.notice} ${s.noticeError}`}>
@@ -127,14 +165,14 @@ export default function Activity() {
             <form onSubmit={reverse}>
               <h3 className={s.h3}>Anular compra</h3>
               <label htmlFor="reason">Motivo obligatorio</label>
-              <input id="reason" required maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} />
+              <input id="reason" required maxLength={300} disabled={busy} value={reason} onChange={(e) => setReason(e.target.value)} />
               <p className={s.hint}>
                 Se conserva el evento original. Si la recompensa obtenida con este sello ya fue canjeada, el caso pasa a
                 soporte y no se modifica automáticamente.
               </p>
               <div className={s.actions}>
-                <button className={s.dangerBtn} disabled={!reason.trim()}>Confirmar reverso</button>
-                <button type="button" className={s.secondary} onClick={close}>Volver al historial</button>
+                <button className={s.dangerBtn} disabled={!reason.trim() || busy}>{busy ? "Registrando reverso…" : "Confirmar reverso"}</button>
+                <button type="button" className={s.secondary} disabled={busy} onClick={close}>Volver al historial</button>
               </div>
             </form>
           )}

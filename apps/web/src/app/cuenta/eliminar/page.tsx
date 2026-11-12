@@ -16,13 +16,14 @@ export default function DeleteAccount() {
 
   async function remove(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     if (typed.trim().toUpperCase() !== WORD) return setError(`Escribe ${WORD} para confirmar.`);
     setBusy(true);
     setError("");
     const { error, response } = await api.DELETE("/api/v1/me").catch(offline);
+    setBusy(false);
     if (response.status === 401 || response.status === 403) return router.replace("/acceso?next=/cuenta/eliminar");
     if (error) {
-      setBusy(false);
       return setError(errorMessage(error));
     }
     router.replace("/");
@@ -40,7 +41,7 @@ export default function DeleteAccount() {
       </div>
       <form onSubmit={remove}>
         <label htmlFor="confirm">Escribe {WORD} para confirmar</label>
-        <input id="confirm" autoComplete="off" value={typed} aria-invalid={!!error} onChange={(e) => setTyped(e.target.value)} />
+        <input id="confirm" autoComplete="off" disabled={busy} value={typed} aria-invalid={!!error} onChange={(e) => setTyped(e.target.value)} />
         {error && <p role="alert" className="status error">{error}</p>}
         <div className={s.actions}>
           <button className="danger" disabled={busy}>{busy ? "Eliminando…" : "Eliminar definitivamente"}</button>

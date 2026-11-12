@@ -39,8 +39,9 @@ def test_wrong_code_locks_after_five_attempts():
     c = APIClient()
     request_code(c)
     _, code = ConsoleMailer.sent[-1]
+    wrong_code = "000000" if code != "000000" else "999999"
     for _ in range(5):
-        assert c.post("/api/v1/auth/verify", {"email": "ana@example.com", "code": "000000"}, format="json").status_code == 400
+        assert c.post("/api/v1/auth/verify", {"email": "ana@example.com", "code": wrong_code}, format="json").status_code == 400
     assert c.post("/api/v1/auth/verify", {"email": "ana@example.com", "code": code}, format="json").status_code == 400
 
 

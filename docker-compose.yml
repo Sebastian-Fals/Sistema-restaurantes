@@ -18,6 +18,7 @@ services:
       context: ./apps/web
       args:
         API_URL: http://api:8000
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-}
     depends_on:
       api:
         condition: service_healthy

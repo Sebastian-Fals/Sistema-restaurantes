@@ -30,8 +30,28 @@ Los códigos de acceso salen por el log si no hay `RESEND_API_KEY`.
 ```bash
 cd apps/api && uv run pytest                                                  # SQLite en memoria (solo tests)
 DATABASE_URL=postgres://usuario:clave@localhost:5432/mesa uv run pytest       # contra PostgreSQL, como en CI
-cd ../web && pnpm typecheck && pnpm build
+cd ../web && pnpm typecheck && pnpm test:security && pnpm build
 ```
+
+Aceptación en navegador (requiere las dependencias de API instaladas y Chrome, o Chromium de Playwright):
+
+```bash
+cd apps/web
+pnpm test:e2e
+# Alternativa sin Chrome del sistema:
+pnpm exec playwright install chromium
+PLAYWRIGHT_CHROMIUM_CHANNEL=chromium pnpm test:e2e
+```
+
+Estas pruebas levantan una API con datos sintéticos y base temporal en `:8011` y un frontend en `:3011`;
+no reutilizan la base de la demo ni una base productiva. Comprueban los seis recorridos, teclado,
+anchos de 320–1440 px y respuestas de compra/canje perdidas. Se conserva la configuración TypeScript
+original al terminar. El job `acceptance` ejecuta el mismo recorrido en CI.
+
+Preparación de un piloto real y retención de accesos: [`mvp/operacion.md`](mvp/operacion.md).
+La migración `0002_stamp_contributions` registra qué compras contribuyeron a cada recompensa.
+Los historiales anteriores con reversos o saldos no reconstruibles se escalan a soporte; no se inventa
+su procedencia. Antes de desplegar, aplicar migraciones y revisar esos casos con el equipo.
 
 ## Contrato OpenAPI → tipos del frontend
 ```bash

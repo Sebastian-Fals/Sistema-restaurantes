@@ -8,16 +8,23 @@ import { CustomerShell, LoadError, Loading, offline, styles as s, useCards } fro
 
 export default function Account() {
   const router = useRouter();
-  const { cards, setCards, failed } = useCards();
+  const { cards, setCards, failed, retry } = useCards();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [busy, setBusy] = useState("");
 
   useEffect(() => {
-    api.GET("/api/v1/me").then(({ data }) => data && setEmail(data.email));
+    let active = true;
+    api.GET("/api/v1/me").catch(offline).then(({ data, error }) => {
+      if (!active) return;
+      if (data) setEmail(data.email);
+      else setMessage({ text: errorMessage(error, "No pudimos cargar los datos de tu cuenta."), error: true });
+    });
+    return () => { active = false; };
   }, []);
 
   async function consent(slug: string, name: string, granted: boolean) {
+    if (busy) return;
     setBusy(slug);
     const { error } = await api.PUT("/api/v1/b/{slug}/consent", { params: { path: { slug } }, body: { granted } }).catch(offline);
     setBusy("");
@@ -27,14 +34,18 @@ export default function Account() {
   }
 
   async function logout() {
-    await api.POST("/api/v1/auth/logout");
+    if (busy) return;
+    setBusy("logout");
+    const { error } = await api.POST("/api/v1/auth/logout").catch(offline);
+    setBusy("");
+    if (error) return setMessage({ text: `No pudimos cerrar tu sesión. ${errorMessage(error)}`, error: true });
     router.push("/acceso");
   }
 
   return (
     <CustomerShell title="Mi cuenta" subtitle={email || " "}>
       <h2>Preferencias de comunicación</h2>
-      {failed ? <LoadError /> : !cards ? <Loading /> : cards.length === 0 ? (
+      {failed ? <LoadError retry={retry} /> : !cards ? <Loading /> : cards.length === 0 ? (
         <p className="muted">Cuando actives una tarjeta podrás elegir aquí si quieres recibir promociones de ese negocio.</p>
       ) : (
         cards.map((c) => (
@@ -47,7 +58,7 @@ export default function Account() {
             </span>
             <input
               id={`consent-${c.business_slug}`} type="checkbox" role="switch" className={s.switch}
-              checked={c.marketing_consent} disabled={busy === c.business_slug}
+              checked={c.marketing_consent} disabled={!!busy}
               onChange={(e) => consent(c.business_slug, c.business_name, e.target.checked)}
             />
           </label>
@@ -61,7 +72,7 @@ export default function Account() {
       <h2 style={{ marginTop: 40 }}>Privacidad y mis datos</h2>
       <p className="muted">Cada negocio ve únicamente tu relación con su programa. No puede consultar tus compras en otros locales.</p>
       <div className={s.actions}>
-        <button className="secondary" onClick={logout}>Cerrar sesión</button>
+        <button className="secondary" disabled={!!busy} onClick={logout}>{busy === "logout" ? "Cerrando sesión…" : "Cerrar sesión"}</button>
       </div>
 
       <h2 className={s.dangerTitle}>Eliminar tu cuenta</h2>

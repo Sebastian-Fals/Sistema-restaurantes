@@ -11,9 +11,9 @@ export const PanelContext = createContext<Panel>({ slug: "", role: "staff", busi
 export const usePanel = () => useContext(PanelContext);
 
 /** Fecha local YYYY-MM-DD (la API trabaja con días del negocio). */
-export const isoDay = (d = new Date()) => d.toLocaleDateString("en-CA");
+export const isoDay = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
 export const dateTime = (iso: string) =>
-  new Date(iso).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString("es-CO", { timeZone: "America/Bogota", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 export const errorCode = (error: unknown) => (error as { code?: string } | undefined)?.code;
 
 /** Estado "No tienes este permiso": el servidor responde 403 a quien no es administrador. */

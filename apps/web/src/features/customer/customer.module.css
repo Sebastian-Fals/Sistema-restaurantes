@@ -1,8 +1,9 @@
 /* Experiencia del cliente (móvil primero, 390 px de referencia, funcional desde 320 px). */
-.shell { max-width: 480px; margin: 0 auto; padding-bottom: 88px; }
+.shell { max-width: 480px; margin: 0 auto; padding-bottom: 88px; overflow-wrap: anywhere; }
+.shell h1, .shell h2 { font-family: var(--font-sans), sans-serif; }
 .foot { margin-top: 32px; font-size: 13px; color: var(--muted, #65716b); text-align: center; }
 .top { display: flex; justify-content: space-between; align-items: center; margin: -8px 0 24px; }
-.brand { font-family: var(--font-serif), serif; font-size: 28px; color: var(--forest); text-decoration: none; line-height: 1; }
+.brand { display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-serif), serif; font-size: 28px; color: var(--forest); text-decoration: none; line-height: 1; }
 .iconLink { display: grid; place-items: center; width: 44px; height: 44px; color: var(--forest); border-radius: 8px; }
 .subtitle { color: var(--muted); margin: 0 0 24px; }
 
@@ -18,7 +19,7 @@
 .stamp { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-size: 14px; background: rgb(255 255 255 / .14); color: var(--sage); }
 .stamp.on { background: var(--lime); color: var(--forest); }
 .count { color: var(--lime); font-size: 20px; font-weight: 700; }
-.small { font-size: 14px; }
+.small { font-size: 16px; }
 .hint { color: var(--forest); font-weight: 700; margin: 0 0 32px; }
 
 /* Recompensa y código */

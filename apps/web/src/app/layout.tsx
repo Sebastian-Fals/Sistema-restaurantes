@@ -11,7 +11,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`${sans.variable} ${serif.variable}`}>
       <body>
-        <main>{children}</main>
+        <a className="skip-link" href="#main-content">Ir al contenido</a>
+        <main id="main-content" tabIndex={-1}>{children}</main>
       </body>
     </html>
   );

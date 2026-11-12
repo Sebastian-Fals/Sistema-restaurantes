@@ -5,8 +5,19 @@ db.sqlite3
 staticfiles/
 node_modules/
 .next/
+.next-e2e/
+playwright-report/
+test-results/
+.taste-skill/
 .env
+.env.local
 .pytest_cache/
 *.sqlite3
 tsconfig.tsbuildinfo
 .claude/settings.local.json
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
