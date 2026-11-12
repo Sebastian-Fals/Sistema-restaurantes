@@ -15,3 +15,9 @@ test-results/
 *.sqlite3
 tsconfig.tsbuildinfo
 .claude/settings.local.json
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
